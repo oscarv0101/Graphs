@@ -6,7 +6,6 @@ from graph import Graph
 class Test(unittest.TestCase):
     def setUp(self):
         self.graph = Graph()
-
         self.graph.add_vertex(1)
         self.graph.add_vertex(2)
         self.graph.add_vertex(3)
@@ -58,9 +57,7 @@ class Test(unittest.TestCase):
         sys.stdout = io.StringIO()
         self.graph.bft(1)
         output = sys.stdout.getvalue()
-
         self.assertIn(output, bft)
-
         sys.stdout = stdout_  # Restore stdout
 
     def test_dft(self):
