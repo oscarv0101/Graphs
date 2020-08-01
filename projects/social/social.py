@@ -1,3 +1,6 @@
+import random 
+from util import Queue, Stack
+
 class User:
     def __init__(self, name):
         self.name = name
@@ -24,9 +27,9 @@ class SocialGraph:
         """
         Create a new user with a sequential integer ID
         """
-        self.last_id += 1  # automatically increment the ID to assign the new user
         self.users[self.last_id] = User(name)
         self.friendships[self.last_id] = set()
+        self.last_id += 1  # automatically increment the ID to assign the new user
 
     def populate_graph(self, num_users, avg_friendships):
         """
@@ -42,11 +45,25 @@ class SocialGraph:
         self.last_id = 0
         self.users = {}
         self.friendships = {}
-        # !!!! IMPLEMENT ME
 
         # Add users
+        for num in range(num_users):
+            self.add_user(num)
 
         # Create friendships
+        count_to_create = num_users * avg_friendships // 2
+        possible_friendships = []
+        i = 0
+        while i < num_users:
+            j = i + 1
+            while j < num_users:
+                pair = (i, j)
+                possible_friendships.append(pair)
+                j += 1
+            i += 1
+        random.shuffle(possible_friendships)
+        for (user_id, friend_id) in possible_friendships[:count_to_create]:
+            self.add_friendship(user_id, friend_id)
 
     def get_all_social_paths(self, user_id):
         """
@@ -57,9 +74,74 @@ class SocialGraph:
 
         The key is the friend's ID and the value is the path.
         """
-        visited = {}  # Note that this is a dictionary, not a set
-        # !!!! IMPLEMENT ME
-        return visited
+        paths = {user_id: [user_id]}
+        network = self.get_extended_network(user_id)
+
+        for other in network:
+            paths[other] = self.get_social_path(user_id, other)
+
+        return paths
+    def get_extended_network(self, user_id):
+        unvisited = {i for i in range(len(self.users))}
+        network = {user_id}
+
+        queue = Queue()
+        queue.enqueue(user_id)
+
+        while queue.size() != 0:
+            friend_id = queue.dequeue()
+            friend_friends = self.friendships[friend_id]
+
+            for fof_id in friend_friends:
+                if fof_id in unvisited:
+                    unvisited.remove(fof_id)
+                    network.add(fof_id)
+                    queue.enqueue(fof_id)
+        return network
+
+    def get_social_path(self, origin_id, dest_id):
+        unvisited = {u for u in range(len(self.users))}
+        stack = Stack()
+        stack.push([origin_id])
+
+        while stack.size() != 0:
+            path = stack.pop()
+            id = path[-1]
+            if id == dest_id:
+                return path
+
+            friends = self.friendships[id]
+            for friend in friends:
+                if friend in unvisited:
+                    unvisited.remove(friend)
+                    new_path = path.copy()
+                    new_path.append(friend)
+                    stack.push(new_path)
+
+def percent_in_network(total, avg):
+    def friend_count(n):
+        return avg * ((total - (avg * n)) / total)
+    result = 0
+    i = 0
+    while True:
+        added_count = friend_count(i)
+        if added_count <= 0:
+            break
+        result += added_count
+        i += 1
+    return result / total
+
+
+def test_stats(total, avg):
+    print("estimated percent in network for 1000 users with avg 5 friends:")
+    print(percent_in_network(total, avg))
+    sg.populate_graph(total, avg)
+    print("actual percentage:")
+    print(sg.get_extended_network(1).__len__()/total)
+    print("avg degree of separation:")
+    paths = sg.get_all_social_paths(1)
+    total_length = sum([len(path) for path in paths.values()])
+    print(total_length / len(paths.keys()))
 
 
 if __name__ == '__main__':
@@ -68,3 +150,7 @@ if __name__ == '__main__':
     print(sg.friendships)
     connections = sg.get_all_social_paths(1)
     print(connections)
+    print("\n\n")
+    print(test_stats(1000, 5))
+    print("\n\n")
+    print(test_stats(500, 20))
